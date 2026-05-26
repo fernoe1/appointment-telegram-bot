@@ -1,0 +1,5 @@
+settings:
+  token:
+  parse_mode: HTML
+  long_poller: {}
+  locales_dir: "locale"
