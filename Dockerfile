@@ -1,4 +1,4 @@
-FROM golang:1.25-bookworm AS builder
+FROM golang:1.26-bookworm AS builder
 
 WORKDIR /build
 
@@ -14,6 +14,5 @@ FROM alpine:3.21
 RUN apk --no-cache add ca-certificates
 
 COPY --from=builder /build/thecodeisme .
-COPY --from=builder /build/config /config
 
 CMD ["./thecodeisme"]
