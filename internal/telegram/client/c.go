@@ -13,12 +13,12 @@ type Client struct {
 
 func MustNew(botToken string, options ...telego.BotOption) *Client {
 	if botToken == "" {
-		log.Fatal("telegram.client.MustNewClient: no token")
+		log.Fatal("telegram.client.MustNew: no token")
 	}
 
 	bot, err := telego.NewBot(botToken, options...)
 	if err != nil {
-		log.Panicf("telegram.client.MustNewClient->NewBot: %v", err)
+		log.Panicf("telegram.client.MustNew->NewBot: %v", err)
 	}
 
 	return &Client{

@@ -5,18 +5,16 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/client"
-	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/handler"
-	"github.com/mymmrac/telego"
+	"github.com/fernoe1/appointment-telegram-bot/internal/server"
 )
 
 func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	h := handler.MustNew(client.MustNew(os.Getenv("BOT_TOKEN"), telego.WithDefaultDebugLogger()))
+	srv := server.MustNew()
 
-	go func() { _ = h.Start() }()
+	go func() { _ = srv.Start() }()
 	<-stop
-	_ = h.Stop()
+	_ = srv.Stop()
 }

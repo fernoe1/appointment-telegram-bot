@@ -2,12 +2,13 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"log"
 
+	"github.com/fernoe1/appointment-telegram-bot/internal/repository"
 	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/client"
 	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/constant"
-	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/handler/manager"
+	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/handler/calendar"
+	TIME "github.com/fernoe1/appointment-telegram-bot/internal/telegram/handler/time"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -16,7 +17,7 @@ type Handler struct {
 	*th.BotHandler
 }
 
-func MustNew(c *client.Client) *Handler {
+func MustNew(c *client.Client, r *repository.R) *Handler {
 	if c == nil {
 		log.Fatal("telegram.handler.MustNewBotHandler: client is nil")
 	}
@@ -30,26 +31,27 @@ func MustNew(c *client.Client) *Handler {
 		BotHandler: bh,
 	}
 
-	tm := manager.NewTimeManager()
-	cm := manager.NewCalendarManager(tm)
+	cm := calendar.New(r)
+	tm := TIME.New(r)
 
-	h.RegisterHandlers(cm.CallbackQueryForCalendar, tm.CallbackQueryForTime)
+	h.RegisterHandlers(cm.CallbackHandler, tm.CallbackHandler, r)
 
 	return h
 }
 
-func (h *Handler) RegisterHandlers(callbackCalendarHandler, callbackTimeHandler th.CallbackQueryHandler) {
-	h.HandleMessage(onStart, th.CommandEqual("start"))
-	h.Handle(func(ctx *th.Context, upd telego.Update) error {
-		contact := upd.Message.Contact
-		fmt.Printf("Received contact: %s (%s)\n", contact.PhoneNumber, contact.UserID)
-		return nil
-	}, func(ctx context.Context, update telego.Update) bool {
+func (h *Handler) RegisterHandlers(
+	callbackCalendarHandler,
+	callbackTimeHandler th.CallbackQueryHandler,
+	r *repository.R,
+) {
+	h.HandleMessage(onStart(r), th.CommandEqual("start"))
+	h.Handle(onContact(r), func(ctx context.Context, update telego.Update) bool {
 		return update.Message != nil && update.Message.Contact != nil
 	})
 
 	h.HandleCallbackQuery(callbackCalendarHandler, th.AnyCallbackQueryWithMessage(),
-		th.CallbackDataContains(constant.CallbackCalendar))
+		th.CallbackDataContains(constant.CalendarInlineButtonCallback))
 	h.HandleCallbackQuery(callbackTimeHandler, th.AnyCallbackQueryWithMessage(),
-		th.CallbackDataPrefix("time"))
+		th.CallbackDataPrefix(constant.TimeInlineButtonCallback))
+
 }
