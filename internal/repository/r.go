@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/fernoe1/appointment-telegram-bot/internal/domain"
@@ -18,7 +19,7 @@ const (
 
 type Session struct {
 	Command Command
-	// change theses w metadata in future
+	// change these w metadata in future
 	Day  time.Time
 	Hour int
 }
@@ -41,6 +42,10 @@ func New(d *gorm.DB) *R {
 	}
 }
 
+func (r *R) DeleteSession(CID int64) {
+	r.s.Delete(CID)
+}
+
 func (r *R) Session(CID int64) *Session {
 	if item := r.s.Get(CID); item != nil {
 		val := item.Value()
@@ -55,76 +60,128 @@ func (r *R) SetSession(CID int64, session *Session) {
 	r.s.Set(CID, *session, ttlcache.DefaultTTL)
 }
 
-func (r *R) UserByTID(TID int64) (*domain.User, error) {
-	var u domain.User
+func (r *R) AppointmentByTID(tid int64) (*domain.Appointment, error) {
+	var appt domain.Appointment
 
-	err := r.d.Where("telegram_id = ?", TID).First(&u).Error
+	err := r.d.Where("t_id = ?", tid).First(&appt).Error
+
+	if err == gorm.ErrRecordNotFound {
+
+		return nil, nil
+	}
 
 	if err != nil {
 
 		return nil, err
 	}
 
-	return &u, err
+	return &appt, err
 }
 
 func (r *R) FullDays() (map[time.Time]struct{}, error) {
-	var bookedDays []domain.BookedDay
+	var appts []domain.Appointment
 
-	err := r.d.Where("full = ?", true).Find(&bookedDays).Error
+	err := r.d.Find(&appts).Error
+
+	if err == gorm.ErrRecordNotFound {
+
+		return nil, nil
+	}
+
 	if err != nil {
 
 		return nil, err
 	}
 
+	dateCount := make(map[string]int)
+	for _, appt := range appts {
+		dateCount[appt.Date]++
+	}
+	for _, item := range r.s.Items() {
+		dateCount[item.Value().Day.Format(domain.AppointmentDateLayout)]++
+	}
+
 	fullDays := make(map[time.Time]struct{})
+	for dateStr, count := range dateCount {
+		if count >= domain.MaxAppointmentsPerDay {
+			date, err := time.Parse(domain.AppointmentDateLayout, dateStr)
+			if err != nil {
 
-	for _, day := range bookedDays {
-		t, err := time.Parse(domain.AppointmentDateLayout, day.Date)
-		if err != nil {
+				return nil, err
+			}
 
-			continue
+			fullDays[date.Local().Add(-5*time.Hour)] = struct{}{}
 		}
-
-		fullDays[t] = struct{}{}
 	}
 
 	return fullDays, nil
 }
 
 func (r *R) TimeSlotExists(day time.Time, hour int) (bool, error) {
-	var count int64
+	var c int64
 
 	date := day.Format(domain.AppointmentDateLayout)
 
-	err := r.d.Model(&domain.Appointment{}).
-		Joins("JOIN booked_days ON booked_days.id = appointments.booked_day_id").
-		Where("booked_days.date = ? AND appointments.hour = ?", date, hour).
-		Count(&count).
-		Error
+	err := r.d.Where("date = ? AND hour = ?", date, hour).Find(&domain.Appointment{}).Count(&c).Error
+
+	if err == gorm.ErrRecordNotFound {
+
+		return false, nil
+	}
+
 	if err != nil {
 
 		return false, err
 	}
 
-	return count > 0, nil
+	for _, item := range r.s.Items() {
+		if item.Value().Day.Equal(day) && item.Value().Hour == hour {
+			c++
+		}
+	}
+
+	return c > 0, nil
 }
 
 func (r *R) AppointmentCountByDay(day time.Time) (int64, error) {
-	var count int64
+	var c int64
 
 	date := day.Format(domain.AppointmentDateLayout)
 
-	err := r.d.
-		Model(&domain.Appointment{}).
-		Joins("JOIN booked_days ON booked_days.id = appointments.booked_day_id").
-		Where("booked_days.date = ?", date).
-		Count(&count).
-		Error
+	err := r.d.Where("date = ?", date).Find(&domain.Appointment{}).Count(&c).Error
+
+	if err == gorm.ErrRecordNotFound {
+
+		return 0, nil
+	}
+
 	if err != nil {
 
 		return 0, err
 	}
 
-	return count, nil
+	fmt.Println(day)
+
+	for _, item := range r.s.Items() {
+		fmt.Println(item.Value().Day)
+
+		if item.Value().Day.Equal(day) {
+			c++
+		}
+	}
+
+	return c, nil
+}
+
+func (r *R) CreateAppointment(tid, cid int64, username, phoneNumber string, day time.Time, hour int) error {
+	return r.d.Create(
+		&domain.Appointment{
+			TID:         tid,
+			CID:         cid,
+			Username:    username,
+			PhoneNumber: phoneNumber,
+			Date:        day.Format(domain.AppointmentDateLayout),
+			Hour:        hour,
+		},
+	).Error
 }
