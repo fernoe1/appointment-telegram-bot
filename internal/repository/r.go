@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -115,6 +116,41 @@ func (r *R) FullDays() (map[time.Time]struct{}, error) {
 	}
 
 	return fullDays, nil
+}
+
+func (r *R) AvailableTimeSlots(day time.Time) ([]int, error) {
+	date := day.Format(domain.AppointmentDateLayout)
+
+	var bookedHours []int
+	err := r.d.Model(&domain.Appointment{}).Where("date = ?", date).Pluck("hour", &bookedHours).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+
+		return nil, nil
+	}
+
+	if err != nil {
+
+		return nil, err
+	}
+
+	booked := make(map[int]struct{}, len(bookedHours))
+	for _, hour := range bookedHours {
+		booked[hour] = struct{}{}
+	}
+
+	var slots []int
+	for hour := 8; hour < 18; hour++ {
+		if hour == 13 {
+			continue
+		}
+
+		if _, exists := booked[hour]; !exists {
+			slots = append(slots, hour)
+		}
+	}
+
+	return slots, nil
 }
 
 func (r *R) TimeSlotExists(day time.Time, hour int) (bool, error) {

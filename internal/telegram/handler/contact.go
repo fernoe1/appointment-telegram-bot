@@ -8,6 +8,13 @@ import (
 
 func onContact(r *repository.R) th.Handler {
 	return func(ctx *th.Context, upd telego.Update) error {
+		var (
+			tid         = upd.Message.From.ID
+			cid         = upd.Message.Chat.ID
+			username    = upd.Message.From.Username
+			phoneNumber = upd.Message.Contact.PhoneNumber
+		)
+
 		sess := r.Session(upd.Message.Chat.ID)
 		if sess == nil {
 
@@ -15,7 +22,26 @@ func onContact(r *repository.R) th.Handler {
 		}
 
 		if sess.Command == repository.Start {
-			_, err := ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
+			err := r.CreateAppointment(
+				tid,
+				cid,
+				username,
+				phoneNumber,
+				sess.Day,
+				sess.Hour,
+			)
+
+			if err != nil {
+				_, _ = ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
+					ChatID:      upd.Message.Chat.ChatID(),
+					Text:        "Произошла ошибка. Пожалуйста, выполните команду /start ещё раз, чтобы начать заново.",
+					ReplyMarkup: &telego.ReplyKeyboardRemove{RemoveKeyboard: true},
+				})
+
+				return err
+			}
+
+			_, err = ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
 				ChatID:      upd.Message.Chat.ChatID(),
 				Text:        "Запись была успешно оформлена.",
 				ReplyMarkup: &telego.ReplyKeyboardRemove{RemoveKeyboard: true},
@@ -23,6 +49,8 @@ func onContact(r *repository.R) th.Handler {
 
 			return err
 		}
+
+		r.DeleteSession(cid)
 
 		return nil
 	}

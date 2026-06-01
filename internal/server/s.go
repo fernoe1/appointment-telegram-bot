@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/fernoe1/appointment-telegram-bot/internal/repository"
@@ -35,15 +34,11 @@ func MustNew() *Server {
 }
 
 func (s *Server) Start() error {
-	if s == nil || s.handler == nil {
-		return fmt.Errorf("internal.server.Start: server is nil")
-	}
+
 	return s.handler.Start()
 }
 
 func (s *Server) Stop() error {
-	if s == nil || s.handler == nil {
-		return nil
-	}
+
 	return s.handler.Stop()
 }

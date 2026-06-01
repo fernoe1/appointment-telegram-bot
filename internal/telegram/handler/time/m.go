@@ -22,6 +22,27 @@ func New(r *repository.R) *Manager {
 }
 
 func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) error {
+	sess := m.r.Session(query.From.ID)
+	if sess == nil {
+		err := ctx.Bot().DeleteMessage(ctx, &telego.DeleteMessageParams{
+			ChatID:    query.Message.GetChat().ChatID(),
+			MessageID: query.Message.GetMessageID(),
+		})
+
+		if err != nil {
+
+			return err
+		}
+
+		err = ctx.Bot().AnswerCallbackQuery(ctx, &telego.AnswerCallbackQueryParams{
+			CallbackQueryID: query.ID,
+			Text:            "Время вашей сессии истекло. Пожалуйста, начните заново, снова используя команду /start.",
+			ShowAlert:       true,
+		})
+
+		return err
+	}
+
 	tn := time.Now()
 	p := strings.Split(query.Data, "/")
 	if len(p) < 3 {
@@ -83,24 +104,6 @@ func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) e
 		return err
 	}
 
-	appointmentCount, err := m.r.AppointmentCountByDay(day)
-	if err != nil {
-
-		return err
-	}
-
-	if appointmentCount > domain.MaxAppointmentsPerDay {
-		err = ctx.Bot().AnswerCallbackQuery(ctx,
-			&telego.AnswerCallbackQueryParams{
-				CallbackQueryID: query.ID,
-				Text:            "Выбранный день недоступен, пожалуйста, начните заново с помощью /start.",
-				ShowAlert:       true,
-			},
-		)
-
-		return err
-	}
-
 	_, err = ctx.Bot().EditMessageText(ctx, &telego.EditMessageTextParams{
 		ChatID:    query.Message.GetChat().ChatID(),
 		MessageID: query.Message.GetMessageID(),
@@ -115,10 +118,10 @@ func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) e
 		return err
 	}
 
-	sess := m.r.Session(query.Message.GetChat().ID)
-	if sess != nil && sess.Command == repository.Start {
+	if sess.Command == repository.Start {
 		sess.Day = day
 		sess.Hour = hour
+		m.r.SetSession(query.Message.GetChat().ID, sess)
 	}
 
 	_, err = ctx.Bot().SendMessage(ctx, tu.Message(telego.ChatID{ID: query.Message.GetChat().ID},
@@ -128,7 +131,7 @@ func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) e
 				tu.KeyboardRow(
 					tu.KeyboardButton("Поделиться контактом").WithRequestContact(),
 				),
-			),
+			).WithResizeKeyboard(),
 		),
 	)
 
@@ -136,7 +139,7 @@ func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) e
 }
 
 func parseDay(day string) (time.Time, error) {
-	return time.Parse("02.01.2006", day)
+	return time.Parse(domain.AppointmentDateLayout, day)
 }
 
 func sameDay(x, y time.Time) bool {

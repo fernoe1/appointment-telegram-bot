@@ -6,7 +6,6 @@ import (
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
-	"gorm.io/gorm"
 )
 
 func onStart(r *repository.R) th.MessageHandler {
@@ -16,8 +15,19 @@ func onStart(r *repository.R) th.MessageHandler {
 			cid = message.Chat.ID
 		)
 
-		exists, err := r.UserByTID(tid)
-		if err != nil && err != gorm.ErrRecordNotFound {
+		sess := r.Session(cid)
+		if sess != nil {
+			_, err := ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
+				ChatID: telego.ChatID{ID: cid},
+				Text:   "У вас уже запущена сессия записи на приём. Пожалуйста, сначала завершите её.",
+			},
+			)
+
+			return err
+		}
+
+		exists, err := r.AppointmentByTID(tid)
+		if err != nil {
 
 			return err
 		}

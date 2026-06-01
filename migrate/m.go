@@ -8,7 +8,7 @@ import (
 )
 
 func Run(db *gorm.DB) error {
-	if err := db.AutoMigrate(&domain.User{}, &domain.BookedDay{}, &domain.Appointment{}); err != nil {
+	if err := db.AutoMigrate(&domain.Appointment{}); err != nil {
 		return fmt.Errorf("migrate.Run->AutoMigrate: %w", err)
 	}
 
