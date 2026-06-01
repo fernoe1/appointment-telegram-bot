@@ -24,7 +24,18 @@ func New(r *repository.R) *Manager {
 func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) error {
 	sess := m.r.Session(query.From.ID)
 	if sess == nil {
-		err := ctx.Bot().DeleteMessage(ctx, &telego.DeleteMessageParams{
+		err := ctx.Bot().AnswerCallbackQuery(ctx, &telego.AnswerCallbackQueryParams{
+			CallbackQueryID: query.ID,
+			Text:            "Время вашей сессии истекло. Пожалуйста, начните заново, снова используя команду /start.",
+			ShowAlert:       true,
+		})
+
+		if err != nil {
+
+			return err
+		}
+
+		err = ctx.Bot().DeleteMessage(ctx, &telego.DeleteMessageParams{
 			ChatID:    query.Message.GetChat().ChatID(),
 			MessageID: query.Message.GetMessageID(),
 		})
@@ -33,12 +44,6 @@ func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) e
 
 			return err
 		}
-
-		err = ctx.Bot().AnswerCallbackQuery(ctx, &telego.AnswerCallbackQueryParams{
-			CallbackQueryID: query.ID,
-			Text:            "Время вашей сессии истекло. Пожалуйста, начните заново, снова используя команду /start.",
-			ShowAlert:       true,
-		})
 
 		return err
 	}
@@ -122,20 +127,41 @@ func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) e
 		sess.Day = day
 		sess.Hour = hour
 		m.r.SetSession(query.Message.GetChat().ID, sess)
+
+		_, err = ctx.Bot().SendMessage(ctx, tu.Message(telego.ChatID{ID: query.Message.GetChat().ID},
+			"Пожалуйста, поделитесь своим контактом, чтобы мы могли связаться с вами.").
+			WithReplyMarkup(
+				tu.Keyboard(
+					tu.KeyboardRow(
+						tu.KeyboardButton("Поделиться контактом").WithRequestContact(),
+					),
+				).WithResizeKeyboard(),
+			),
+		)
+
+		return err
 	}
 
-	_, err = ctx.Bot().SendMessage(ctx, tu.Message(telego.ChatID{ID: query.Message.GetChat().ID},
-		"Пожалуйста, поделитесь своим контактом, чтобы мы могли связаться с вами.").
-		WithReplyMarkup(
-			tu.Keyboard(
-				tu.KeyboardRow(
-					tu.KeyboardButton("Поделиться контактом").WithRequestContact(),
-				),
-			).WithResizeKeyboard(),
-		),
-	)
+	if sess.Command == repository.Edit {
+		sess.Day = day
+		sess.Hour = hour
+		m.r.SetSession(query.Message.GetChat().ID, sess)
 
-	return err
+		_, err = ctx.Bot().SendMessage(ctx, tu.Message(telego.ChatID{ID: query.Message.GetChat().ID},
+			"Пожалуйста, поделитесь своим новым контактом.").
+			WithReplyMarkup(
+				tu.Keyboard(
+					tu.KeyboardRow(
+						tu.KeyboardButton("Поделиться контактом").WithRequestContact(),
+					),
+				).WithResizeKeyboard(),
+			),
+		)
+
+		return err
+	}
+
+	return nil
 }
 
 func parseDay(day string) (time.Time, error) {

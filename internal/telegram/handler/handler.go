@@ -48,6 +48,7 @@ func (h *Handler) RegisterHandlers(
 	h.Handle(onContact(r), func(ctx context.Context, update telego.Update) bool {
 		return update.Message != nil && update.Message.Contact != nil
 	})
+	h.HandleMessage(onEdit(r), th.CommandEqual("edit"))
 
 	h.HandleCallbackQuery(callbackCalendarHandler, th.AnyCallbackQueryWithMessage(),
 		th.CallbackDataContains(constant.CalendarInlineButtonCallback))

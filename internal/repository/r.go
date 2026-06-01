@@ -221,3 +221,16 @@ func (r *R) CreateAppointment(tid, cid int64, username, phoneNumber string, day 
 		},
 	).Error
 }
+
+func (r *R) UpdateAppointment(tid, cid int64, username, phoneNumber string, day time.Time, hour int) error {
+	return r.d.Updates(
+		&domain.Appointment{
+			TID:         tid,
+			CID:         cid,
+			Username:    username,
+			PhoneNumber: phoneNumber,
+			Date:        day.Format(domain.AppointmentDateLayout),
+			Hour:        hour,
+		},
+	).Error
+}

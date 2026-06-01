@@ -38,6 +38,7 @@ func onContact(r *repository.R) th.Handler {
 					ReplyMarkup: &telego.ReplyKeyboardRemove{RemoveKeyboard: true},
 				})
 
+				r.DeleteSession(cid)
 				return err
 			}
 
@@ -47,7 +48,45 @@ func onContact(r *repository.R) th.Handler {
 				ReplyMarkup: &telego.ReplyKeyboardRemove{RemoveKeyboard: true},
 			})
 
-			return err
+			if err != nil {
+
+				r.DeleteSession(cid)
+				return err
+			}
+		}
+
+		if sess.Command == repository.Edit {
+			err := r.UpdateAppointment(
+				tid,
+				cid,
+				username,
+				phoneNumber,
+				sess.Day,
+				sess.Hour,
+			)
+
+			if err != nil {
+				_, _ = ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
+					ChatID:      upd.Message.Chat.ChatID(),
+					Text:        "Произошла ошибка. Пожалуйста, выполните команду /edit ещё раз, чтобы начать заново.",
+					ReplyMarkup: &telego.ReplyKeyboardRemove{RemoveKeyboard: true},
+				})
+
+				r.DeleteSession(cid)
+				return err
+			}
+
+			_, err = ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
+				ChatID:      upd.Message.Chat.ChatID(),
+				Text:        "Запись была успешно изменена.",
+				ReplyMarkup: &telego.ReplyKeyboardRemove{RemoveKeyboard: true},
+			})
+
+			if err != nil {
+
+				r.DeleteSession(cid)
+				return err
+			}
 		}
 
 		r.DeleteSession(cid)

@@ -36,7 +36,18 @@ func New(r *repository.R) *Manager {
 func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) error {
 	sess := m.r.Session(query.From.ID)
 	if sess == nil {
-		err := ctx.Bot().DeleteMessage(ctx, &telego.DeleteMessageParams{
+		err := ctx.Bot().AnswerCallbackQuery(ctx, &telego.AnswerCallbackQueryParams{
+			CallbackQueryID: query.ID,
+			Text:            "Время вашей сессии истекло. Пожалуйста, начните заново, снова используя команду /start.",
+			ShowAlert:       true,
+		})
+
+		if err != nil {
+
+			return err
+		}
+
+		err = ctx.Bot().DeleteMessage(ctx, &telego.DeleteMessageParams{
 			ChatID:    query.Message.GetChat().ChatID(),
 			MessageID: query.Message.GetMessageID(),
 		})
@@ -45,12 +56,6 @@ func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) e
 
 			return err
 		}
-
-		err = ctx.Bot().AnswerCallbackQuery(ctx, &telego.AnswerCallbackQueryParams{
-			CallbackQueryID: query.ID,
-			Text:            "Время вашей сессии истекло. Пожалуйста, начните заново, снова используя команду /start.",
-			ShowAlert:       true,
-		})
 
 		return err
 	}
