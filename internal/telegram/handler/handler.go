@@ -8,6 +8,7 @@ import (
 	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/client"
 	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/constant"
 	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/handler/calendar"
+	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/handler/see"
 	TIME "github.com/fernoe1/appointment-telegram-bot/internal/telegram/handler/time"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -33,15 +34,16 @@ func MustNew(c *client.Client, r *repository.R) *Handler {
 
 	cm := calendar.New(r)
 	tm := TIME.New(r)
+	sm := see.New(r)
 
-	h.RegisterHandlers(cm.CallbackHandler, tm.CallbackHandler, r)
+	h.RegisterHandlers(cm.CallbackHandler, tm.CallbackHandler, sm.CallbackHandler, r)
 
 	return h
 }
 
 func (h *Handler) RegisterHandlers(
 	callbackCalendarHandler,
-	callbackTimeHandler th.CallbackQueryHandler,
+	callbackTimeHandler, callbackSeeHandler th.CallbackQueryHandler,
 	r *repository.R,
 ) {
 	h.HandleMessage(onStart(r), th.CommandEqual("start"))
@@ -49,10 +51,13 @@ func (h *Handler) RegisterHandlers(
 		return update.Message != nil && update.Message.Contact != nil
 	})
 	h.HandleMessage(onEdit(r), th.CommandEqual("edit"))
+	h.HandleMessage(onSee(r), th.CommandEqual("see"))
 
 	h.HandleCallbackQuery(callbackCalendarHandler, th.AnyCallbackQueryWithMessage(),
 		th.CallbackDataContains(constant.CalendarInlineButtonCallback))
 	h.HandleCallbackQuery(callbackTimeHandler, th.AnyCallbackQueryWithMessage(),
 		th.CallbackDataPrefix(constant.TimeInlineButtonCallback))
+	h.HandleCallbackQuery(callbackSeeHandler, th.AnyCallbackQueryWithMessage(),
+		th.CallbackDataPrefix(constant.SeeInlineButtonCallbackPrefix))
 
 }

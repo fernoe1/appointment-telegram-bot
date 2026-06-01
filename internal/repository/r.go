@@ -13,9 +13,10 @@ import (
 type Command string
 
 const (
-	Start Command = "start"
-	Edit  Command = "edit"
-	Admin Command = "admin"
+	Start  Command = "start"
+	Edit   Command = "edit"
+	See    Command = "see"
+	Delete Command = "delete"
 )
 
 type Session struct {
@@ -233,4 +234,72 @@ func (r *R) UpdateAppointment(tid, cid int64, username, phoneNumber string, day 
 			Hour:        hour,
 		},
 	).Error
+}
+
+func (r *R) AppointmentsOn(day time.Time) ([]domain.Appointment, error) {
+	var appts []domain.Appointment
+
+	date := day.Format(domain.AppointmentDateLayout)
+
+	err := r.d.Where("date = ?", date).Order("hour ASC").Find(&appts).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+
+		return appts, nil
+	}
+
+	if err != nil {
+
+		return nil, err
+	}
+
+	return appts, nil
+}
+
+func (r *R) AppointmentsFromToWeek(day time.Time) ([]domain.Appointment, error) {
+	var appts []domain.Appointment
+
+	weekday := int(day.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+
+	start := day.AddDate(0, 0, -(weekday - 1))
+	end := start.AddDate(0, 0, 6)
+
+	err := r.d.
+		Where(
+			"date >= ? AND date <= ?",
+			start.Format(domain.AppointmentDateLayout),
+			end.Format(domain.AppointmentDateLayout),
+		).Order("date ASC, hour ASC").Find(&appts).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+
+		return nil, nil
+	}
+
+	if err != nil {
+
+		return nil, err
+	}
+
+	return appts, nil
+}
+
+func (r *R) AllAppointments() ([]domain.Appointment, error) {
+	var appts []domain.Appointment
+
+	err := r.d.Order("date ASC, hour ASC").Find(&appts).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return appts, nil
 }

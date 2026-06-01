@@ -58,7 +58,7 @@ func onStart(r *repository.R) th.MessageHandler {
 func createCalendarButton() *telego.InlineKeyboardMarkup {
 	return tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(constant.CalendarInlineButtonName).WithCallbackData(constant.CalendarInlineButtonCallback),
+			tu.InlineKeyboardButton(constant.CalendarInlineButton).WithCallbackData(constant.CalendarInlineButtonCallback),
 		),
 	)
 }
