@@ -11,8 +11,13 @@ import (
 	"gorm.io/gorm"
 )
 
-func onDelete(r *repository.R) th.MessageHandler {
+func onDelete(r *repository.R, adminTID int64) th.MessageHandler {
 	return func(ctx *th.Context, message telego.Message) error {
+		if message.From.ID != adminTID {
+
+			return nil
+		}
+
 		_, _, args := tu.ParseCommand(message.Text)
 		if len(args) == 0 {
 			_, err := ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{

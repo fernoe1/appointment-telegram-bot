@@ -47,12 +47,13 @@ func (h *Handler) RegisterHandlers(
 	r *repository.R,
 ) {
 	h.HandleMessage(onStart(r), th.CommandEqual("start"))
+	h.HandleMessage(onCancel(r), th.CommandEqual("cancel"))
 	h.Handle(onContact(r), func(ctx context.Context, update telego.Update) bool {
 		return update.Message != nil && update.Message.Contact != nil
 	})
 	h.HandleMessage(onEdit(r), th.CommandEqual("edit"))
-	h.HandleMessage(onSee(r), th.CommandEqual("see"))
-	h.HandleMessage(onDelete(r), th.CommandEqual("delete"))
+	h.HandleMessage(onSee(r, 6821929008), th.CommandEqual("see"))
+	h.HandleMessage(onDelete(r, 6821929008), th.CommandEqual("delete"))
 
 	h.HandleCallbackQuery(callbackCalendarHandler, th.AnyCallbackQueryWithMessage(),
 		th.CallbackDataContains(constant.CalendarInlineButtonCallback))

@@ -7,6 +7,7 @@ import (
 
 	"github.com/fernoe1/appointment-telegram-bot/internal/domain"
 	"github.com/fernoe1/appointment-telegram-bot/internal/repository"
+	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/constant"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	dbf "github.com/thevan4/telegram-calendar/day_button_former"
@@ -58,6 +59,11 @@ func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) e
 		}
 
 		return err
+	}
+	if sess.Command == repository.Start {
+		sess.Day = time.Time{}
+		sess.Hour = 0
+		m.r.SetSession(query.From.ID, sess)
 	}
 
 	tn := time.Now()
@@ -220,6 +226,13 @@ func (m *Manager) createTimeButtons(day time.Time) (*telego.InlineKeyboardMarkup
 			},
 		})
 	}
+
+	buttons = append(buttons, []telego.InlineKeyboardButton{
+		{
+			Text:         "Вернуться к календарю",
+			CallbackData: constant.CalendarInlineButtonCallback,
+		},
+	})
 
 	return &telego.InlineKeyboardMarkup{InlineKeyboard: buttons}, nil
 }

@@ -20,7 +20,7 @@ func onEdit(r *repository.R) th.MessageHandler {
 		if sess != nil {
 			_, err := ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
 				ChatID: telego.ChatID{ID: cid},
-				Text:   "У вас уже запущена сессия записи на приём. Пожалуйста, сначала завершите её.",
+				Text:   "У вас уже запущена сессия записи на приём. Пожалуйста, сначала завершите её или отмените её с помощью команды /cancel.",
 			},
 			)
 

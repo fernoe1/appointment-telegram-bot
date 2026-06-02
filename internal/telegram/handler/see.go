@@ -8,8 +8,13 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-func onSee(r *repository.R) th.MessageHandler {
+func onSee(r *repository.R, adminTID int64) th.MessageHandler {
 	return func(ctx *th.Context, message telego.Message) error {
+		if message.From.ID != adminTID {
+
+			return nil
+		}
+
 		var (
 			cid = message.Chat.ID
 		)
