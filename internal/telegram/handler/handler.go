@@ -52,6 +52,7 @@ func (h *Handler) RegisterHandlers(
 	})
 	h.HandleMessage(onEdit(r), th.CommandEqual("edit"))
 	h.HandleMessage(onSee(r), th.CommandEqual("see"))
+	h.HandleMessage(onDelete(r), th.CommandEqual("delete"))
 
 	h.HandleCallbackQuery(callbackCalendarHandler, th.AnyCallbackQueryWithMessage(),
 		th.CallbackDataContains(constant.CalendarInlineButtonCallback))

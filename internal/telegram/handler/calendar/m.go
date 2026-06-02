@@ -67,6 +67,10 @@ func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) e
 		return err
 	}
 
+	if sess.Command == repository.Edit {
+		delete(fullDays, sess.Day)
+	}
+
 	if tn.Hour() >= 18 {
 		fullDays[normalize(tn)] = struct{}{}
 	}
@@ -106,16 +110,18 @@ func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) e
 			return err
 		}
 
-		if apptCount >= domain.MaxAppointmentsPerDay {
-			err = ctx.Bot().AnswerCallbackQuery(ctx,
-				&telego.AnswerCallbackQueryParams{
-					CallbackQueryID: query.ID,
-					Text:            "Выбранная дата стала недоступной. Пожалуйста, выберите другую дату.",
-					ShowAlert:       true,
-				},
-			)
+		if sess.Command != repository.Edit && sess.Day != normalize(response.SelectedDay) {
+			if apptCount >= domain.MaxAppointmentsPerDay {
+				err = ctx.Bot().AnswerCallbackQuery(ctx,
+					&telego.AnswerCallbackQueryParams{
+						CallbackQueryID: query.ID,
+						Text:            "Выбранная дата стала недоступной. Пожалуйста, выберите другую дату.",
+						ShowAlert:       true,
+					},
+				)
 
-			return err
+				return err
+			}
 		}
 
 		timeButtons, err := m.createTimeButtons(response.SelectedDay)

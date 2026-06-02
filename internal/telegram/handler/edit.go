@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"time"
+
+	"github.com/fernoe1/appointment-telegram-bot/internal/domain"
 	"github.com/fernoe1/appointment-telegram-bot/internal/repository"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -40,7 +43,8 @@ func onEdit(r *repository.R) th.MessageHandler {
 			return err
 		}
 
-		r.SetSession(cid, &repository.Session{Command: repository.Edit})
+		day, _ := time.Parse(domain.AppointmentDateLayout, exists.Date)
+		r.SetSession(cid, &repository.Session{Command: repository.Edit, Day: day.Local().Add(-time.Hour * 5)})
 
 		_, err = ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
 			ChatID:      telego.ChatID{ID: cid},

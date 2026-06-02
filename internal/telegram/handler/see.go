@@ -14,9 +14,6 @@ func onSee(r *repository.R) th.MessageHandler {
 			cid = message.Chat.ID
 		)
 
-		r.DeleteSession(cid)
-		r.SetSession(cid, &repository.Session{Command: repository.See})
-
 		_, err := ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
 			ChatID:      telego.ChatID{ID: cid},
 			Text:        "Выберите один из вариантов.",

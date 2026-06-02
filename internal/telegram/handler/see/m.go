@@ -21,41 +21,6 @@ func New(r *repository.R) *Manager {
 }
 
 func (m *Manager) CallbackHandler(ctx *th.Context, query telego.CallbackQuery) error {
-	sess := m.r.Session(query.From.ID)
-	if sess == nil {
-		err := ctx.Bot().AnswerCallbackQuery(ctx, &telego.AnswerCallbackQueryParams{
-			CallbackQueryID: query.ID,
-			Text:            "Время вашей сессии истекло. Пожалуйста, начните заново, снова используя команду /see.",
-			ShowAlert:       true,
-		})
-
-		if err != nil {
-
-			return err
-		}
-
-		err = ctx.Bot().DeleteMessage(ctx, &telego.DeleteMessageParams{
-			ChatID:    query.Message.GetChat().ChatID(),
-			MessageID: query.Message.GetMessageID(),
-		})
-
-		if err != nil {
-
-			return err
-		}
-
-		return err
-	}
-
-	if sess.Command != repository.See {
-		err := ctx.Bot().DeleteMessage(ctx, &telego.DeleteMessageParams{
-			ChatID:    query.Message.GetChat().ChatID(),
-			MessageID: query.Message.GetMessageID(),
-		})
-
-		return err
-	}
-
 	if query.Data == constant.SeeInlineButtonTodayCallback {
 		appts, err := m.r.AppointmentsOn(time.Now())
 		if err != nil {
