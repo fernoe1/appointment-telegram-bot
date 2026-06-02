@@ -307,3 +307,32 @@ func (r *R) AllAppointments() ([]domain.Appointment, error) {
 
 	return appts, nil
 }
+
+func (r *R) AppointmentsFrom(day time.Time) ([]domain.Appointment, error) {
+	var appts []domain.Appointment
+
+	date := day.Format(domain.AppointmentDateLayout)
+
+	err := r.d.
+		Where("date >= ?", date).
+		Order("date ASC, hour ASC").
+		Find(&appts).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+
+		return nil, nil
+	}
+
+	if err != nil {
+
+		return nil, err
+	}
+
+	return appts, nil
+}
+
+func (r *R) DeleteAppointmentsBefore(day time.Time) error {
+	date := day.Format(domain.AppointmentDateLayout)
+
+	return r.d.Where("date < ?", date).Delete(&domain.Appointment{}).Error
+}
