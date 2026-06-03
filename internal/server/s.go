@@ -11,6 +11,7 @@ import (
 	"github.com/fernoe1/appointment-telegram-bot/internal/domain"
 	"github.com/fernoe1/appointment-telegram-bot/internal/repository"
 	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/client"
+	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/constant"
 	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/handler"
 	"github.com/fernoe1/appointment-telegram-bot/migrate"
 	"github.com/fernoe1/appointment-telegram-bot/pkg"
@@ -26,8 +27,6 @@ type Server struct {
 	reminded   map[string]struct{}
 }
 
-const adminTID int64 = 6821929008
-
 func MustNew() *Server {
 	db, err := pkg.NewGormDB(os.Getenv("DB_URL"))
 	if err != nil {
@@ -39,7 +38,7 @@ func MustNew() *Server {
 	}
 
 	r := repository.New(db)
-	tgClient := client.MustNew(os.Getenv("BOT_TOKEN"), telego.WithDefaultDebugLogger())
+	tgClient := client.MustNew(os.Getenv("BOT_TOKEN"), telego.WithDefaultLogger(false, true))
 
 	return &Server{
 		handler:  handler.MustNew(tgClient, r),
@@ -86,7 +85,6 @@ func (s *Server) processAppointments() {
 	}
 
 	for _, appt := range appts {
-		fmt.Println(appt)
 		apptTime, err := appointmentTime(appt)
 		if err != nil {
 			log.Printf("internal.server.processAppointments->appointmentTime: %v", err)
@@ -105,14 +103,13 @@ func (s *Server) processAppointments() {
 		}
 
 		left := apptTime.Sub(now)
-		fmt.Println(left)
 
-		if left <= 3*time.Hour {
+		if left <= 3*time.Hour && left >= 3*time.Hour-5*time.Minute {
 			s.sendReminder(appt, 3)
+		}
 
-			if left <= 1*time.Hour {
-				s.sendReminder(appt, 1)
-			}
+		if left <= 1*time.Hour && left >= 1*time.Hour-5*time.Minute {
+			s.sendReminder(appt, 1)
 		}
 	}
 }
@@ -127,9 +124,12 @@ func appointmentTime(appt domain.Appointment) (time.Time, error) {
 	}
 
 	if t, err := time.ParseInLocation("2006-01-02 15:04", appt.Date, time.Local); err == nil {
+
 		return t, nil
 	}
+
 	if t, err := time.ParseInLocation(time.RFC3339, appt.Date, time.Local); err == nil {
+
 		return t, nil
 	}
 
@@ -148,7 +148,7 @@ func (s *Server) sendReminder(appt domain.Appointment, hoursLeft int) {
 	)
 
 	adminText := fmt.Sprintf(
-		"Напоминаем: через %d часов у вас встреча с %s.\nДанные: тэг: %s\nДата: %s",
+		"Напоминаем, через %d часов у вас встреча с %s.\nДанные:\n Тэг: %s\nДата: %s",
 		hoursLeft,
 		appt.PhoneNumber,
 		appt.Username,
@@ -164,7 +164,7 @@ func (s *Server) sendReminder(appt domain.Appointment, hoursLeft int) {
 	}
 
 	_, err = s.bot.SendMessage(context.Background(), &telego.SendMessageParams{
-		ChatID: telego.ChatID{ID: adminTID},
+		ChatID: telego.ChatID{ID: constant.AdminTID},
 		Text:   adminText,
 	})
 	if err != nil {

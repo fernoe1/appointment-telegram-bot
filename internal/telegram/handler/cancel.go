@@ -14,6 +14,11 @@ func onCancel(r *repository.R) th.MessageHandler {
 
 		r.DeleteSession(cid)
 
-		return nil
+		_, err := ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
+			ChatID: telego.ChatID{ID: message.Chat.ID},
+			Text:   "Процесс записи успешно отменён.",
+		})
+
+		return err
 	}
 }

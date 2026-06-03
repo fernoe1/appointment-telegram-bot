@@ -1,6 +1,8 @@
 package constant
 
 const (
+	AdminTID = 6821929008
+
 	CalendarInlineButton         = "Календарь"
 	CalendarInlineButtonCallback = "calendar/"
 

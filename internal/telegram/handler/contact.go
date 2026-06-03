@@ -1,7 +1,11 @@
 package handler
 
 import (
+	"fmt"
+
+	"github.com/fernoe1/appointment-telegram-bot/internal/domain"
 	"github.com/fernoe1/appointment-telegram-bot/internal/repository"
+	"github.com/fernoe1/appointment-telegram-bot/internal/telegram/constant"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -46,6 +50,16 @@ func onContact(r *repository.R) th.Handler {
 				ChatID:      upd.Message.Chat.ChatID(),
 				Text:        "Запись была успешно оформлена.",
 				ReplyMarkup: &telego.ReplyKeyboardRemove{RemoveKeyboard: true},
+			})
+
+			_, _ = ctx.Bot().SendMessage(ctx, &telego.SendMessageParams{
+				ChatID: telego.ChatID{ID: constant.AdminTID},
+				Text: fmt.Sprintf("Была создана новая запись.\nДанные:\nТэг: %s\nКонтакт: %s\nДата: %s\nВремя: %d",
+					username,
+					phoneNumber,
+					sess.Day.Format(domain.AppointmentDateLayout),
+					sess.Hour,
+				),
 			})
 
 			if err != nil {

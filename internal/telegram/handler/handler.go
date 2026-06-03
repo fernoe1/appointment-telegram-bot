@@ -52,8 +52,8 @@ func (h *Handler) RegisterHandlers(
 		return update.Message != nil && update.Message.Contact != nil
 	})
 	h.HandleMessage(onEdit(r), th.CommandEqual("edit"))
-	h.HandleMessage(onSee(r, 6821929008), th.CommandEqual("see"))
-	h.HandleMessage(onDelete(r, 6821929008), th.CommandEqual("delete"))
+	h.HandleMessage(onSee(r, 1), th.CommandEqual("see"))
+	h.HandleMessage(onDelete(r, constant.AdminTID), th.CommandEqual("delete"))
 
 	h.HandleCallbackQuery(callbackCalendarHandler, th.AnyCallbackQueryWithMessage(),
 		th.CallbackDataContains(constant.CalendarInlineButtonCallback))
